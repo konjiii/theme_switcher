@@ -1,1 +1,70 @@
 #!/usr/bin/env bash
+
+CONFIG_FILE="$XDG_CONFIG_HOME/term_theme_switcher/config"
+
+# Check if the config file exists
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "Error: Configuration file $CONFIG_FILE does not exist"
+    exit 1
+fi
+
+source $CONFIG_FILE
+
+# for name in "${names[@]}"; do
+#     echo $name
+# done
+#
+# for program in "${programs[@]}"; do
+#     echo $program
+#     eval "themes=(\"\${${program}[@]}\")"
+#     for theme in "${themes[@]}"; do
+#         echo $theme
+#     done
+# done
+#
+# exit 0
+
+get_theme() {
+    local theme="$1"
+    index=-1
+    for i in "${!names[@]}"; do
+        if [[ "${names[$i]}" == "$theme" ]]; then
+            index=$i
+            break
+        fi
+    done
+    echo "$index"
+}
+
+set_theme() {
+    local idx="$1"
+    local theme_file="$HOME/.theme"
+
+    if [ ! -f "$theme_file" ]; then
+        touch $theme_file
+    fi
+
+    if [ ! -w "$theme_file" ]; then
+        echo "Error: Theme file $theme_file is not writable"
+        return 1
+    fi
+
+    # remove theme_file contents
+    : >$theme_file
+
+    echo "Updated ~/.theme:"
+    for program in "${programs[@]}"; do
+        eval "theme=(\"\${${program}[$idx]}\")"
+
+        echo "$program=\"$theme\"" >>"$theme_file"
+
+        echo "$program=\"$theme\""
+    done
+    return 0
+}
+
+themes_string=$(printf "%s\n" "${names[@]}")
+
+chosen=$(echo "$themes_string" | fzf)
+idx=$(get_theme "$chosen")
+set_theme "$idx"
