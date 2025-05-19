@@ -57,6 +57,11 @@ themes_string=$(printf "%s\n" "${names[@]}")
 
 # make user choose a theme using fzf
 chosen=$(echo "$themes_string" | fzf)
+# if user exited without changing do nothing
+if [ "$chosen" = "" ]; then
+    exit 0
+fi
+
 idx=$(get_theme_idx "$chosen")
 # set theme in the ~/.theme file
 set_theme "$idx"
