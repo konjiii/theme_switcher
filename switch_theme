@@ -8,23 +8,11 @@ if [ ! -f "$CONFIG_FILE" ]; then
     exit 1
 fi
 
+# get all themes from config file
 source $CONFIG_FILE
 
-# for name in "${names[@]}"; do
-#     echo $name
-# done
-#
-# for program in "${programs[@]}"; do
-#     echo $program
-#     eval "themes=(\"\${${program}[@]}\")"
-#     for theme in "${themes[@]}"; do
-#         echo $theme
-#     done
-# done
-#
-# exit 0
-
-get_theme() {
+# get the index of the chosen theme
+get_theme_idx() {
     local theme="$1"
     index=-1
     for i in "${!names[@]}"; do
@@ -36,6 +24,7 @@ get_theme() {
     echo "$index"
 }
 
+# sets the themes in the ~/.theme file
 set_theme() {
     local idx="$1"
     local theme_file="$HOME/.theme"
@@ -63,8 +52,11 @@ set_theme() {
     return 0
 }
 
+# make a \n seperated string of theme names
 themes_string=$(printf "%s\n" "${names[@]}")
 
+# make user choose a theme using fzf
 chosen=$(echo "$themes_string" | fzf)
-idx=$(get_theme "$chosen")
+idx=$(get_theme_idx "$chosen")
+# set theme in the ~/.theme file
 set_theme "$idx"
