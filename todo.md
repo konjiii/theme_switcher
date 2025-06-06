@@ -1,0 +1,2 @@
+- functionality:
+    - list current theme

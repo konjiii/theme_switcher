@@ -1,0 +1,147 @@
+#!/usr/bin/env bash
+
+CONFIG_FILE="$XDG_CONFIG_HOME/theme_switcher/config"
+# config file example:
+: '
+# file ~/.config/theme_switcher/config
+programs=("neovim" "wezterm")
+
+names=(
+    "catppuccin (mocha)"
+    "rose-pine"
+    "gruvbox    (dark)"
+    "everforest (dark)"
+    "tokyonight (moon)"
+    "kanagawa   (wave)"
+)
+
+neovim=(
+    "catppuccin"
+    "rose-pine"
+    "gruvbox"
+    "everforest"
+    "tokyonight"
+    "kanagawa"
+)
+
+wezterm=(
+    "Catppuccin Mocha"
+    "rose-pine"
+    "Gruvbox Dark (Gogh)"
+    "Everforest Dark (Gogh)"
+    "Tokyo Night Moon"
+    "Kanagawa (Gogh)"
+)
+'
+
+THEME_FILE="$HOME/.theme"
+
+# check if array contains a value
+# $1: name of haystack variable
+# $2: needle
+contains() {
+    local -n arr=$1
+    for item in "${arr[@]}"; do
+        if [ "$item" = "$2" ]; then
+            true
+            return
+        fi
+    done
+
+    false
+    return
+}
+
+# get current theme of program_name
+get() {
+    if [ -z $1 ]; then
+        >&2 echo "Usage: switch_theme --get [program_name]"
+        exit 2
+    fi
+    local program="$1"
+
+    # get all themes from config file
+    source $CONFIG_FILE
+
+    if ! contains programs "$program"; then
+        >&2 echo "Program $program has no theme defined"
+        exit 3
+    fi
+
+    # get the current active themes
+    source $THEME_FILE
+    echo "${!program}"
+}
+
+# switch theme program
+switch() {
+    # Check if the config file exists
+    if [ ! -f "$CONFIG_FILE" ]; then
+        >&2 echo "Error: Configuration file $CONFIG_FILE does not exist"
+        exit 1
+    fi
+
+    # get all themes from config file
+    source $CONFIG_FILE
+
+    # get the index of the chosen theme
+    get_theme_idx() {
+        local theme="$1"
+        index=-1
+        for item in "${!names[@]}"; do
+            if [[ "${names[$item]}" == "$theme" ]]; then
+                index=$item
+                break
+            fi
+        done
+        echo "$index"
+    }
+
+    # sets the themes in the ~/.theme file
+    set_theme() {
+        local idx="$1"
+
+        if [ ! -f "$THEME_FILE" ]; then
+            touch $THEME_FILE
+        fi
+
+        if [ ! -w "$THEME_FILE" ]; then
+            echo "Error: Theme file $THEME_FILE is not writable"
+            return 1
+        fi
+
+        # remove theme file contents
+        : >$THEME_FILE
+
+        # populate theme file with program=theme values
+        echo "Updated ~/.theme:"
+        for program in "${programs[@]}"; do
+            eval "theme=(\"\${${program}[$idx]}\")"
+
+            echo "$program=\"$theme\"" >>"$THEME_FILE"
+
+            echo "$program=\"$theme\""
+        done
+        return 0
+    }
+
+    # make a \n seperated string of theme names
+    local themes_string=$(printf "%s\n" "${names[@]}")
+
+    # make user choose a theme using fzf
+    local chosen=$(echo "$themes_string" | fzf)
+    # if user exited without changing do nothing
+    if [ "$chosen" = "" ]; then
+        exit 0
+    fi
+
+    local idx=$(get_theme_idx "$chosen")
+    # set theme in the ~/.theme file
+    set_theme "$idx"
+}
+
+if [ "$1" = "--get" ]; then
+    get "$2"
+else
+    switch
+fi
